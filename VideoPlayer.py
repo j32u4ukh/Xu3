@@ -43,8 +43,10 @@ class VideoPlayer:
         cv2.namedWindow('play')
 
         # create trackbars for playing
-        cv2.createTrackbar('speed', 'play', 1, 50, self.nothing)
-        cv2.setTrackbarMin('speed', 'play', 1)
+        cv2.createTrackbar('speed10', 'play', 0, 9, self.nothing)
+        cv2.setTrackbarMin('speed10', 'play', 0)
+        cv2.createTrackbar('speed', 'play', 1, 9, self.nothing)
+        cv2.setTrackbarMin('speed', 'play', 0)
         cv2.createTrackbar('jump', 'play', 10, 50, self.nothing)
         cv2.setTrackbarMin('jump', 'play', 2)
 
@@ -79,7 +81,10 @@ class VideoPlayer:
                 # endregion
 
                 if not self.is_searching:
-                    self.index += cv2.getTrackbarPos('speed', 'play')
+                    speed = 10 * cv2.getTrackbarPos('speed10', 'play') + cv2.getTrackbarPos('speed', 'play')
+                    if speed == 0:
+                        speed = 1
+                    self.index += speed
 
         self.cap.release()
         cv2.destroyAllWindows()
