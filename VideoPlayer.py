@@ -36,7 +36,7 @@ class VideoPlayer:
     def getFrames(self):
         self.cap = cv2.VideoCapture(self.path)
         self.frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        print("Toatl frames number is ", self.frames)
+        print("Total frames number is ", self.frames)
 
     def play(self):
         # Create a window
@@ -59,7 +59,8 @@ class VideoPlayer:
             if not _ret:
                 break
             else:
-                cv2.imshow("play", _frame)
+                display = cv2.resize(_frame, (640, 360), interpolation=cv2.INTER_CUBIC)
+                cv2.imshow("play", display)
                 self.plus_more = cv2.getTrackbarPos('jump', 'play')
                 self.minus_more = cv2.getTrackbarPos('jump', 'play')
 
@@ -85,6 +86,11 @@ class VideoPlayer:
 
     def splitVideo(self, _output_path):
         if len(self.split_index) != 0:
+            # 確保：前面的索引值，不會大於後面的索引值
+            for idx in range(len(self.split_index) - 1):
+                if self.split_index[idx] > self.split_index[idx + 1]:
+                    return
+
             self.split_index.append(self.frames)
             self.group_index.append(0)
             self.index = 0
@@ -95,7 +101,8 @@ class VideoPlayer:
             _height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
             # 使用 XVID 編碼
-            _fourcc = cv2.VideoWriter_fourcc(*'XVID')
+            # _fourcc = cv2.VideoWriter_fourcc(*'XVID')
+            _fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
 
             # 取得影片幀率
             _fps = self.cap.get(cv2.CAP_PROP_FPS)
@@ -118,7 +125,8 @@ class VideoPlayer:
                 os.makedirs(_output)
 
             # 影片寫出
-            self.output = cv2.VideoWriter('{}/{}.mp4'.format(_output, _file_name),
+            output_path = '{}/{}.mp4'.format(_output, _file_name)
+            self.output = cv2.VideoWriter(output_path,
                                           _fourcc,
                                           _fps,
                                           (_width, _height))
@@ -134,6 +142,7 @@ class VideoPlayer:
                         self.output.write(_frame)
                         self.index += 1
                     else:
+                        print("[Done]", output_path)
                         # 釋放所有資源
                         self.output.release()
 
@@ -157,7 +166,8 @@ class VideoPlayer:
                                 os.makedirs(_output)
 
                             # 影片寫出
-                            self.output = cv2.VideoWriter('{}/{}.mp4'.format(_output, _file_name),
+                            output_path = '{}/{}.mp4'.format(_output, _file_name)
+                            self.output = cv2.VideoWriter(output_path,
                                                           _fourcc,
                                                           _fps,
                                                           (_width, _height))
@@ -165,8 +175,65 @@ class VideoPlayer:
                             break
 
             # 釋放所有資源
+            print("[Done]", output_path)
             self.cap.release()
             self.output.release()
+
+    def mergeVideo(self, *args):
+        if len(args) == 0:
+            return
+
+        self.cap = cv2.VideoCapture(args[0])
+
+        # 使用 XVID 編碼
+        # _fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        _fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+
+        # 取得影片幀率
+        _fps = self.cap.get(cv2.CAP_PROP_FPS)
+
+        # 取得影像的尺寸大小
+        _width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        _height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+
+        # 檔案名稱
+        _file_name = datetime.now().strftime("%Y%m%d%H%M%S%f")
+
+        # 輸出資料夾
+        _output = os.path.split(args[0])[0]
+
+        # 輸出檔案名稱
+        _output_name = '{}/merge-{}.mp4'.format(_output, _file_name)
+
+        # 影片寫出
+        self.output = cv2.VideoWriter(_output_name,
+                                      _fourcc,
+                                      _fps,
+                                      (_width, _height))
+
+        print("Merge videos into {}.".format(_output_name))
+        for arg in args:
+            print("merging {}".format(arg))
+            self.cap = cv2.VideoCapture(arg)
+
+            while self.cap.isOpened():
+                _ret, _frame = self.cap.read()
+
+                if not _ret:
+                    break
+                else:
+                    self.output.write(_frame)
+
+            # 釋放 cap 資源
+            self.cap.release()
+
+        # 釋放 output 資源
+        self.output.release()
+
+        print("Remove origin files.")
+        for arg in args:
+            print("Remove ", arg)
+            os.remove(arg)
 
     def stop(self):
         self.keep_playing = False
@@ -206,7 +273,7 @@ class VideoPlayer:
         pass
 
 
-if __name__ == "__main__":
+def splitVideoCompoment(_output_path):
     root = tk.Tk()
     root.withdraw()
 
@@ -214,10 +281,25 @@ if __name__ == "__main__":
     input_path = filedialog.askopenfilename()
 
     if input_path != "":
-        print("input_path:", input_path)
         vp = VideoPlayer(input_path)
         vp.play()
-        vp.splitVideo("j32u4ukh/data/SplitData")
+        # vp.splitVideo(_output_path)
 
+        print("input_path:", input_path)
         print("split_index:", vp.split_index)
         print("group_index:", vp.group_index)
+
+
+def mergeVideoCompoment():
+    root = tk.Tk()
+    root.withdraw()
+
+    input_paths = list(filedialog.askopenfilenames())
+
+    vp = VideoPlayer("")
+    vp.mergeVideo(*input_paths)
+
+
+if __name__ == "__main__":
+    splitVideoCompoment("OpenAV/data/SplitData1/MaNKo")
+    # mergeVideoCompoment()
