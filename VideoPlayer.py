@@ -20,6 +20,7 @@ class VideoPlayer:
 
         # region For split video
         self.output = None
+        self.last_split_index = 0
         self.split_index = []
         self.group_index = []
         # endregion
@@ -38,17 +39,18 @@ class VideoPlayer:
         self.frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         print("Total frames number is ", self.frames)
 
-    def play(self):
-        # Create a window
-        cv2.namedWindow('play')
+    def play(self, _with_track_bar=True):
+        if _with_track_bar:
+            # Create a window
+            cv2.namedWindow('play')
 
-        # create trackbars for playing
-        cv2.createTrackbar('speed10', 'play', 0, 9, self.nothing)
-        cv2.setTrackbarMin('speed10', 'play', 0)
-        cv2.createTrackbar('speed', 'play', 1, 9, self.nothing)
-        cv2.setTrackbarMin('speed', 'play', 0)
-        cv2.createTrackbar('jump', 'play', 10, 50, self.nothing)
-        cv2.setTrackbarMin('jump', 'play', 2)
+            # create trackbars for playing
+            cv2.createTrackbar('speed10', 'play', 0, 20, self.nothing)
+            cv2.setTrackbarMin('speed10', 'play', 0)
+            cv2.createTrackbar('speed', 'play', 1, 9, self.nothing)
+            cv2.setTrackbarMin('speed', 'play', 0)
+            cv2.createTrackbar('jump', 'play', 10, 50, self.nothing)
+            cv2.setTrackbarMin('jump', 'play', 2)
 
         self.index = 0
         self.cap = cv2.VideoCapture(self.path)
@@ -61,10 +63,13 @@ class VideoPlayer:
             if not _ret:
                 break
             else:
-                display = cv2.resize(_frame, (640, 360), interpolation=cv2.INTER_CUBIC)
+                # display = cv2.resize(_frame, (960, 540), interpolation=cv2.INTER_CUBIC)
+                display = cv2.resize(_frame, (1120, 630), interpolation=cv2.INTER_CUBIC)
                 cv2.imshow("play", display)
-                self.plus_more = cv2.getTrackbarPos('jump', 'play')
-                self.minus_more = cv2.getTrackbarPos('jump', 'play')
+
+                if _with_track_bar:
+                    self.plus_more = cv2.getTrackbarPos('jump', 'play')
+                    self.minus_more = cv2.getTrackbarPos('jump', 'play')
 
                 if self.is_searching:
                     key_code = cv2.waitKey(0)
@@ -76,12 +81,19 @@ class VideoPlayer:
                 if self.func.__contains__(key_code):
                     self.func.get(key_code)()
                 elif 48 <= key_code <= 57:
-                    self.split_index.append(self.index)
-                    self.group_index.append(key_code - 48)
+                    # 當前索引值，必須大於前一次切割的索引值
+                    if self.last_split_index < self.index:
+                        self.split_index.append(self.index)
+                        self.group_index.append(key_code - 48)
+                        self.last_split_index = self.index
                 # endregion
 
                 if not self.is_searching:
-                    speed = 10 * cv2.getTrackbarPos('speed10', 'play') + cv2.getTrackbarPos('speed', 'play')
+                    if _with_track_bar:
+                        speed = 10 * cv2.getTrackbarPos('speed10', 'play') + cv2.getTrackbarPos('speed', 'play')
+                    else:
+                        speed = 1
+
                     if speed == 0:
                         speed = 1
                     self.index += speed
@@ -249,7 +261,7 @@ class VideoPlayer:
         else:
             self.index = self.frames - 1
 
-        print("Current index:", self.index)
+        print("index: {} / {}".format(self.index, self.frames - 1))
 
     def plus1(self):
         self.plus(1)
@@ -263,7 +275,7 @@ class VideoPlayer:
         else:
             self.index = 0
 
-        print("Current index:", self.index)
+        print("index: {} / {}".format(self.index, self.frames - 1))
 
     def minus1(self):
         self.minus(1)
@@ -278,6 +290,18 @@ class VideoPlayer:
         pass
 
 
+def playVideoCompoment():
+    root = tk.Tk()
+    root.withdraw()
+
+    # 利用彈出視窗，選擇輸入檔案
+    input_path = filedialog.askopenfilename()
+
+    if input_path != "":
+        vp = VideoPlayer(input_path)
+        vp.play(_with_track_bar=False)
+
+
 def splitVideoCompoment(_output_path):
     root = tk.Tk()
     root.withdraw()
@@ -288,7 +312,7 @@ def splitVideoCompoment(_output_path):
     if input_path != "":
         vp = VideoPlayer(input_path)
         vp.play()
-        # vp.splitVideo(_output_path)
+        vp.splitVideo(_output_path)
 
         print("input_path:", input_path)
         print("split_index:", vp.split_index)
@@ -306,5 +330,7 @@ def mergeVideoCompoment():
 
 
 if __name__ == "__main__":
+    # playVideoCompoment()
+    # MaNKo >> 0: False, 1: True, 2: ambiguous, 3: temp
     splitVideoCompoment("OpenAV/data/SplitData1/MaNKo")
     # mergeVideoCompoment()
