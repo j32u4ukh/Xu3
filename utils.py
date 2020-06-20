@@ -1,10 +1,5 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sat Nov 30 07:49:01 2019
-
-@author: j32u4ukh
-"""
 import cv2
+import inspect
 
 
 def showImage(*args):
@@ -29,3 +24,8 @@ def multiOperation(op, *args):
         result = op(result, args[i])
 
     return result
+
+
+def getFuncName():
+    return inspect.stack()[1][3]
+
