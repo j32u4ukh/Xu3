@@ -34,7 +34,7 @@ def getFuncName():
 def getLogger(logger_name, logger_level=logging.DEBUG, logger_format=None):
     if logger_format is None:
         logger_format = '%(asctime)s [%(name)s] %(levelname)s: %(funcName)s | ' \
-                        '%(message)s (%(pathname)s, line: %(lineno)d)'
+                        '%(message)s (line: %(lineno)d, %(pathname)s)'
 
     # logger.debug("debug")
     # logger.info("info")
