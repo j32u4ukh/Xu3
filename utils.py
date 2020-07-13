@@ -1,6 +1,7 @@
-import cv2
 import inspect
 import logging
+
+import cv2
 
 
 def showImage(*args):
