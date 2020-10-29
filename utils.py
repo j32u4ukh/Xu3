@@ -49,7 +49,7 @@ def getLogger(logger_name, logger_level=logging.DEBUG, logger_format=None, time_
     H 小時、
     D 天、
     W 星期（0=Monday） 'W0'-'W6'
-    midnight 每天凌晨
+    MIDNIGHT 每天凌晨
     :param back_count: 備份檔案的個數，如果超過這個個數，就會自動刪除
     :param interval: 時間間隔
     :return:
