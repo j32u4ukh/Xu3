@@ -62,47 +62,60 @@ def tradingTimeRange(start_time: datetime, stop_time: datetime, trading_time: li
     n_trade = len(trading_time)
 
     curr_time = trading_time[0]
-    end_time = datetime(curr_time.year, curr_time.month, curr_time.day, 13, 30, 0)
+    end_time = endTradingTime(curr_time)
 
     while curr_time <= end_time:
         yield curr_time
-        # TODO: tradingTime 的修正反而導致迴圈無法結束
-        curr_time = tradingTime(curr_time + step_time)
+        curr_time = tradingTime(curr_time + step_time, next_day=True)
 
     for t in range(1, n_trade - 1):
         curr_time = trading_time[t]
-        curr_time = datetime(curr_time.year, curr_time.month, curr_time.day, 9, 0, 1)
-        end_time = datetime(curr_time.year, curr_time.month, curr_time.day, 13, 30, 0)
+        curr_time = startTradingTime(curr_time)
+        end_time = endTradingTime(curr_time)
 
         while curr_time <= end_time:
             yield curr_time
-            curr_time = tradingTime(curr_time + step_time)
+            curr_time = tradingTime(curr_time + step_time, next_day=True)
 
     end_time = trading_time[n_trade - 1]
-    curr_time = datetime(end_time.year, end_time.month, end_time.day, 9, 0, 1)
+    curr_time = startTradingTime(end_time)
 
     while curr_time <= end_time:
         yield curr_time
-        curr_time = tradingTime(curr_time + step_time)
+        curr_time = tradingTime(curr_time + step_time, next_day=True)
 
 
-def tradingTime(date_time):
+def tradingTime(date_time, next_day=False):
     """
     確保時間在交易時間內
 
     :param date_time:
+    :param next_day: 超過交易時間的數值，是否進位到隔天的交易開始時間點
     :return:
     """
-    first_time = datetime(date_time.year, date_time.month, date_time.day, 9, 0, 1)
-    last_time = datetime(date_time.year, date_time.month, date_time.day, 13, 30, 0)
+    first_time = startTradingTime(date_time)
+    last_time = endTradingTime(date_time)
 
     if date_time < first_time:
         date_time = first_time
 
     elif date_time > last_time:
-        date_time = last_time
+
+        if next_day:
+            date_time = first_time + timedelta(days=1)
+
+        else:
+            date_time = last_time
 
     return date_time
+
+
+def startTradingTime(date_time):
+    return datetime(date_time.year, date_time.month, date_time.day, 9, 0, 1)
+
+
+def endTradingTime(date_time):
+    return datetime(date_time.year, date_time.month, date_time.day, 13, 30, 0)
 
 
 if __name__ == "__main__":
@@ -129,8 +142,19 @@ if __name__ == "__main__":
                             datetime(year=2020, month=2, day=26, hour=13, minute=25),
                             datetime(year=2020, month=3, day=3, hour=9, minute=2)]
 
+            """
+            0 2020-02-20 13:28:01
+            119 2020-02-20 13:30:00
+            120 2020-02-26 09:00:01
+            16319 2020-02-26 13:30:00
+            16320 2020-03-03 09:00:01
+            16439 2020-03-03 09:02:00
+            """
+
+            idx = 0
             for t in tradingTimeRange(start_time=start_time, stop_time=stop_time, trading_time=trading_time):
-                print(t)
+                print(idx, t)
+                idx += 1
 
 
     tester = Tester()
