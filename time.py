@@ -85,11 +85,65 @@ def tradingTimeRange(start_time: datetime, stop_time: datetime, trading_time: li
 
     print(f"[tradingTimeRange] start_time: {start_time}, stop_time: {stop_time}")
 
-    curr_time = start_time
+    n_trading_time = len(trading_time)
 
-    while curr_time <= stop_time:
-        yield curr_time
-        curr_time = tradingTime(curr_time + step_time, next_day=True)
+    if n_trading_time == 1:
+        start_trading = start_time
+        end_trading = stop_time
+        curr_time = start_trading
+
+        while curr_time <= end_trading:
+            yield curr_time
+            curr_time = tradingTime(curr_time + step_time, next_day=True)
+
+    elif n_trading_time == 2:
+        # 第一天
+        start_trading = start_time
+        end_trading = endTradingTime(start_time)
+        curr_time = start_trading
+
+        while curr_time <= end_trading:
+            yield curr_time
+            curr_time = tradingTime(curr_time + step_time, next_day=True)
+
+        start_trading = startTradingTime(stop_time)
+        end_trading = stop_time
+        curr_time = start_trading
+
+        # 最後一天
+        while curr_time <= end_trading:
+            yield curr_time
+            curr_time = tradingTime(curr_time + step_time, next_day=True)
+
+    else:
+        # 第 1 天
+        start_trading = start_time
+        end_trading = endTradingTime(start_time)
+        curr_time = start_trading
+
+        while curr_time <= end_trading:
+            yield curr_time
+            curr_time = tradingTime(curr_time + step_time, next_day=True)
+
+        # 第 2 天 ~ 第 N - 1 天
+        for i in range(1, n_trading_time - 1):
+            date_time = trading_time[i]
+            start_trading = startTradingTime(date_time)
+            end_trading = endTradingTime(date_time)
+            curr_time = start_trading
+
+            while curr_time <= end_trading:
+                yield curr_time
+                curr_time = tradingTime(curr_time + step_time, next_day=True)
+
+        start_trading = startTradingTime(stop_time)
+        end_trading = stop_time
+        curr_time = start_trading
+
+        # 第 N 天(最後一天)
+        while curr_time <= end_trading:
+            yield curr_time
+            curr_time = tradingTime(curr_time + step_time, next_day=True)
 
 
 def tradingTime(date_time, next_day=False):
@@ -143,17 +197,23 @@ if __name__ == "__main__":
             print(f"date_time: {date_time} -> {tradingTime(date_time)}")
 
         def testTradingTimeRange(self):
-            start_time = datetime(2020, 5, 4, 9, 0)
-            stop_time = datetime(2020, 5, 4, 9, 1)
-            trading_time = [datetime(year=2020, month=5, day=4, hour=13, minute=29)]
+            start_time = startTradingTime(datetime(2020, 5, 14))
+            stop_time = endTradingTime(datetime(2020, 5, 21))
+            trading_time = [datetime(year=2020, month=5, day=15),
+                            datetime(year=2020, month=5, day=17),
+                            datetime(year=2020, month=5, day=19),
+                            datetime(year=2020, month=5, day=21)]
 
             """
 
             """
 
             idx = 0
-            for t in tradingTimeRange(start_time=start_time, stop_time=stop_time, trading_time=trading_time):
-                print(idx, t)
+            for t in tradingTimeRange(start_time=start_time, stop_time=stop_time, trading_time=trading_time,
+                                      step_time=timedelta(minutes=1)):
+                if idx % 30 == 0:
+                    print(idx, t)
+
                 idx += 1
 
 
