@@ -43,44 +43,51 @@ def tradingTimeRange(start_time: datetime, stop_time: datetime, trading_time: li
         stop_time = temp
 
     trading_time.sort()
+    print(f"[tradingTimeRange] trading_time: {trading_time}")
 
-    # 確保時間在交易時間內
-    start_time = tradingTime(start_time)
-    stop_time = tradingTime(stop_time)
-    print(f"start_time: {start_time}, stop_time: {stop_time}")
-
-    # 確保時間在交易日期內
     first_date = trading_time[0].date()
-    trading_time[0] = datetime(year=first_date.year, month=first_date.month, day=first_date.day,
-                               # tick 的時間比 K 棒的時間早 1 分鐘，且從 HH:MM:01 開始計時(若輸入精度到秒，那秒數是不是會怪怪的？)
-                               hour=start_time.hour, minute=start_time.minute - 1, second=start_time.second + 1)
+
+    # start_time 這天沒有交易
+    if start_time.date() < first_date:
+        print(f"[tradingTimeRange] first_date: {first_date}, start_time.date(): {start_time.date()}")
+        start_time = datetime(year=first_date.year, month=first_date.month, day=first_date.day,
+                              hour=9, minute=0, second=0)
+
+    # start_time 是有交易的日子
+    else:
+        print(f"[tradingTimeRange] start_time before modify: {start_time}")
+        # tick 的時間比 K 棒的時間早 1 分鐘，且從 HH:MM:01 開始計時(若輸入精度到秒，那秒數是不是會怪怪的？)
+        start_time = start_time - timedelta(minutes=1) + timedelta(seconds=1)
+        print(f"[tradingTimeRange] start_time: {start_time}")
+
+    start_time = tradingTime(start_time)
+    print(f"[tradingTimeRange] start_time after tradingTime: {start_time}")
 
     last_date = trading_time[-1].date()
-    trading_time[-1] = datetime(year=last_date.year, month=last_date.month, day=last_date.day,
-                                hour=stop_time.hour, minute=stop_time.minute, second=stop_time.second)
 
-    n_trade = len(trading_time)
+    # stop_time 這天沒有交易
+    if last_date < stop_time.date():
+        print(f"[tradingTimeRange] last_date: {last_date}, stop_time.date(): {stop_time.date()}")
+        stop_time = datetime(year=last_date.year, month=last_date.month, day=last_date.day,
+                             hour=13, minute=30, second=0)
 
-    curr_time = trading_time[0]
-    end_time = endTradingTime(curr_time)
+    # stop_time 是有交易的日子
+    else:
+        first_stop_time = startTradingTime(stop_time)
+        print(f"[tradingTimeRange] first_stop_time: {first_stop_time}")
 
-    while curr_time <= end_time:
-        yield curr_time
-        curr_time = tradingTime(curr_time + step_time, next_day=True)
+        # 若結束時間的指定，並不在最後一天的交易時間內，表示想要到前一天的交易結束時間點
+        if stop_time < first_stop_time:
+            stop_time = endTradingTime(stop_time - datetime.timedelta(days=1))
+            print(f"[tradingTimeRange] stop_time -> last day endTradingTime: {stop_time}")
 
-    for t in range(1, n_trade - 1):
-        curr_time = trading_time[t]
-        curr_time = startTradingTime(curr_time)
-        end_time = endTradingTime(curr_time)
+    stop_time = tradingTime(stop_time)
 
-        while curr_time <= end_time:
-            yield curr_time
-            curr_time = tradingTime(curr_time + step_time, next_day=True)
+    print(f"[tradingTimeRange] start_time: {start_time}, stop_time: {stop_time}")
 
-    end_time = trading_time[n_trade - 1]
-    curr_time = startTradingTime(end_time)
+    curr_time = start_time
 
-    while curr_time <= end_time:
+    while curr_time <= stop_time:
         yield curr_time
         curr_time = tradingTime(curr_time + step_time, next_day=True)
 
@@ -136,19 +143,12 @@ if __name__ == "__main__":
             print(f"date_time: {date_time} -> {tradingTime(date_time)}")
 
         def testTradingTimeRange(self):
-            start_time = datetime(year=2020, month=2, day=20, hour=13, minute=29)
-            stop_time = datetime(year=2020, month=3, day=3, hour=9, minute=2)
-            trading_time = [datetime(year=2020, month=2, day=20, hour=13, minute=25),
-                            datetime(year=2020, month=2, day=26, hour=13, minute=25),
-                            datetime(year=2020, month=3, day=3, hour=9, minute=2)]
+            start_time = datetime(2020, 5, 4, 9, 0)
+            stop_time = datetime(2020, 5, 4, 9, 1)
+            trading_time = [datetime(year=2020, month=5, day=4, hour=13, minute=29)]
 
             """
-            0 2020-02-20 13:28:01
-            119 2020-02-20 13:30:00
-            120 2020-02-26 09:00:01
-            16319 2020-02-26 13:30:00
-            16320 2020-03-03 09:00:01
-            16439 2020-03-03 09:02:00
+
             """
 
             idx = 0
