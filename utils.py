@@ -85,7 +85,7 @@ def getLogger(logger_name, logger_level=logging.DEBUG, logger_format=None, time_
         logger.addHandler(console_handler)
 
         if time_file:
-            file_dir = os.path.join(file_dir, "log")
+            file_dir = os.path.join("log", file_dir)
 
             if not os.path.exists(file_dir):
                 os.makedirs(file_dir)
