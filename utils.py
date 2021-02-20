@@ -33,15 +33,17 @@ def getFuncName():
     return inspect.stack()[1][3]
 
 
-def getLogger(logger_name, logger_level=logging.DEBUG, logger_format=None, time_file=False, file_dir="",
-              when='D', back_count=20, interval=1):
+def getLogger(logger_name, logger_level=logging.DEBUG, logger_format=None, to_file=True, time_file=False,
+              file_dir="", file_name="", when='D', back_count=20, interval=1):
     """
 
     :param logger_name: logger 名稱
     :param logger_level: logger 的 level
     :param logger_format: 輸出格式
+    :param to_file: 輸出成檔案
     :param time_file: 是否使用根據時間建立新檔案的輸出格式
     :param file_dir: 輸出資料夾(從最上層開始的相對路徑)
+    :param file_name: 輸出的檔案名稱
     :param when: 時間間隔的單位
     單位有以下幾種：
     S 秒
@@ -85,16 +87,20 @@ def getLogger(logger_name, logger_level=logging.DEBUG, logger_format=None, time_
         # 將 handler 添加給 logger
         logger.addHandler(console_handler)
 
+    if to_file:
+        file_dir = os.path.join("log", file_dir)
+
+        if not os.path.exists(file_dir):
+            os.makedirs(file_dir)
+
+        if file_name == "":
+            file_name = logger_name
+
+        file_path = os.path.join(file_dir, f"{file_name}.log")
+
         if time_file:
-            file_dir = os.path.join("log", file_dir)
-
-            if not os.path.exists(file_dir):
-                os.makedirs(file_dir)
-
-            file_name = os.path.join(file_dir, f"{logger_name}.log")
-
             # 創建一個輸出日誌為檔案的 TimedRotatingFileHandler，每間隔固定時間會以時間作為後綴，建立新的輸出檔名
-            time_file_handler = handlers.TimedRotatingFileHandler(filename=file_name,
+            time_file_handler = handlers.TimedRotatingFileHandler(filename=file_path,
                                                                   interval=interval,
                                                                   when=when,
                                                                   backupCount=back_count,
@@ -105,12 +111,29 @@ def getLogger(logger_name, logger_level=logging.DEBUG, logger_format=None, time_
 
             # 將 handler 添加給 logger
             logger.addHandler(time_file_handler)
+        else:
+            file_handler = logging.FileHandler(filename=file_path, encoding='utf-8')
+
+            # 將格式添加給 FileHandler
+            file_handler.setFormatter(formatter)
+
+            # 將 handler 添加給 logger
+            logger.addHandler(file_handler)
 
     return logger
 
 
 if __name__ == "__main__":
-    logger = getLogger("Xu3", logging.DEBUG, time_file=True, file_dir="test", when='S', interval=2, back_count=2)
+    from datetime import datetime
+    # getLogger(logger_name, logger_level=logging.DEBUG, logger_format=None, time_file=False,
+    #               file_dir="", file_name="", when='D', back_count=20, interval=1)
+    logger = getLogger(logger_name="Xu3",
+                       logger_level=logging.DEBUG,
+                       to_file=True,
+                       time_file=False,
+                       file_dir="test",
+                       file_name=datetime.now().strftime("%Y-%m-%d %H-%M-%S")
+                       )
 
     def test():
         from time import time, sleep
