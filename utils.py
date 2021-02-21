@@ -1,6 +1,8 @@
 import inspect
 import logging
 from logging import handlers
+from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
+
 import cv2
 import os
 
@@ -33,17 +35,17 @@ def getFuncName():
     return inspect.stack()[1][3]
 
 
-def getLogger(logger_name, logger_level=logging.DEBUG, logger_format=None, to_file=True, time_file=False,
-              file_dir="", file_name="", when='D', back_count=20, interval=1):
+def getLogger(logger_name, logger_level=logging.DEBUG, instance=False, logger_format=None,
+              to_file=True, time_file=False, file_dir="", when='D', max_mb=2, back_count=20, interval=1):
     """
 
     :param logger_name: logger 名稱
     :param logger_level: logger 的 level
+    :param instance:
     :param logger_format: 輸出格式
     :param to_file: 輸出成檔案
     :param time_file: 是否使用根據時間建立新檔案的輸出格式
     :param file_dir: 輸出資料夾(從最上層開始的相對路徑)
-    :param file_name: 輸出的檔案名稱
     :param when: 時間間隔的單位
     單位有以下幾種：
     S 秒
@@ -53,13 +55,17 @@ def getLogger(logger_name, logger_level=logging.DEBUG, logger_format=None, to_fi
     W 星期（0=Monday） 'W0'-'W6'
     MIDNIGHT 每天凌晨
     # 參見: https://stackoverflow.com/a/60637138
+    :param max_mb: 超過此大小，將會產生同名檔案(不同後綴名稱)
     :param back_count: 備份檔案的個數，如果超過這個個數，就會自動刪除
     :param interval: 時間間隔
     :return:
     """
     if logger_format is None:
-        logger_format = '%(asctime)s %(levelname)s: [%(name)s] %(funcName)s | ' \
-                        '%(message)s (line: %(lineno)d, %(pathname)s)'
+        if instance:
+            logger_format = '%(asctime)s %(levelname)s: [%(className)s] %(funcName)s | ' \
+                            '%(message)s (%(pathname)s, line: %(lineno)d)'
+        else:
+            logger_format = '%(asctime)s %(levelname)s: %(funcName)s | %(message)s (%(pathname)s, line: %(lineno)d)'
 
     # logger.debug("debug")
     # logger.info("info")
@@ -67,36 +73,13 @@ def getLogger(logger_name, logger_level=logging.DEBUG, logger_format=None, to_fi
     # logger.error("error")
     # logger.critical("critical")
 
-    # logger_name: 設置 logger 名稱
-    logger = logging.getLogger(logger_name)
-
-    # 設置 logger 的格式
-    formatter = logging.Formatter(logger_format)
-
-    # 設置 logger 的 level
-    logger.setLevel(logger_level)
-
-    # 避免重複輸出 log
-    if not logger.handlers:
-        # 創建一個輸出日誌到控制台的 StreamHandler
-        console_handler = logging.StreamHandler()
-
-        # 將格式添加給 StreamHandler
-        console_handler.setFormatter(formatter)
-
-        # 將 handler 添加給 logger
-        logger.addHandler(console_handler)
-
     if to_file:
         file_dir = os.path.join("log", file_dir)
 
         if not os.path.exists(file_dir):
             os.makedirs(file_dir)
 
-        if file_name == "":
-            file_name = logger_name
-
-        file_path = os.path.join(file_dir, f"{file_name}.log")
+        file_path = os.path.join(file_dir, f"{logger_name}.log")
 
         if time_file:
             # 創建一個輸出日誌為檔案的 TimedRotatingFileHandler，每間隔固定時間會以時間作為後綴，建立新的輸出檔名
@@ -106,43 +89,74 @@ def getLogger(logger_name, logger_level=logging.DEBUG, logger_format=None, to_fi
                                                                   backupCount=back_count,
                                                                   encoding='utf-8')
 
-            # 將格式添加給 TimedRotatingFileHandler
-            time_file_handler.setFormatter(formatter)
+            logging.basicConfig(format=logger_format, handlers=[logging.StreamHandler(), time_file_handler])
 
-            # 將 handler 添加給 logger
-            logger.addHandler(time_file_handler)
+            #
+            # # 將格式添加給 TimedRotatingFileHandler
+            # time_file_handler.setFormatter(formatter)
+            #
+            # # 將 handler 添加給 logger
+            # logger.addHandler(time_file_handler)
         else:
-            file_handler = logging.FileHandler(filename=file_path, encoding='utf-8')
+            file_handler = logging.handlers.RotatingFileHandler(filename=file_path,
+                                                                maxBytes=1048576 * max_mb,
+                                                                backupCount=back_count,
+                                                                encoding='utf-8')
 
-            # 將格式添加給 FileHandler
-            file_handler.setFormatter(formatter)
+            logging.basicConfig(format=logger_format, handlers=[logging.StreamHandler(), file_handler])
 
-            # 將 handler 添加給 logger
-            logger.addHandler(file_handler)
+            #
+            # # 將格式添加給 FileHandler
+            # file_handler.setFormatter(formatter)
+            #
+            # # 將 handler 添加給 logger
+            # logger.addHandler(file_handler)
+    else:
+        logging.basicConfig(format=logger_format, handlers=[logging.StreamHandler()])
+
+    # logger_name: 設置 logger 名稱
+    logger = logging.getLogger(logger_name)
+
+    # 設置 logger 的格式
+    # formatter = logging.Formatter(logger_format)
+
+    # 設置 logger 的 level
+    logger.setLevel(logger_level)
+
+    # 避免重複輸出 log
+    # if not logger.handlers:
+    # # 創建一個輸出日誌到控制台的 StreamHandler
+    # console_handler = logging.StreamHandler()
+    #
+    # # 將格式添加給 StreamHandler
+    # console_handler.setFormatter(formatter)
+    #
+    # # 將 handler 添加給 logger
+    # logger.addHandler(console_handler)
 
     return logger
 
 
 if __name__ == "__main__":
     from datetime import datetime
+
     # getLogger(logger_name, logger_level=logging.DEBUG, logger_format=None, time_file=False,
     #               file_dir="", file_name="", when='D', back_count=20, interval=1)
-    logger = getLogger(logger_name="Xu3",
+    logger = getLogger(logger_name=datetime.now().strftime("%Y-%m-%d %H-%M-%S"),
                        logger_level=logging.DEBUG,
                        to_file=True,
                        time_file=False,
                        file_dir="test",
-                       file_name=datetime.now().strftime("%Y-%m-%d %H-%M-%S")
-                       )
+                       instance=True)
+
 
     def test():
-        from time import time, sleep
-
-        for i in range(20):
-            logger.debug(i)
-            logger.info(i * 10)
-            # print(i)
-            sleep(0.5)
+        d = {"className": "className"}
+        for i in range(100):
+            logger.debug(i, extra=d)
+            # logger.debug(i, extra=d)
+            # logger.info(i * 10, extra=d)
+            logger.info(i * 10, extra=d)
 
 
     test()
