@@ -41,7 +41,7 @@ def getLogger(logger_name, logger_level=logging.DEBUG, instance=False, logger_fo
 
     :param logger_name: logger 名稱
     :param logger_level: logger 的 level
-    :param instance:
+    :param instance: 是否由類別呼叫
     :param logger_format: 輸出格式
     :param to_file: 輸出成檔案
     :param time_file: 是否使用根據時間建立新檔案的輸出格式
@@ -91,12 +91,6 @@ def getLogger(logger_name, logger_level=logging.DEBUG, instance=False, logger_fo
 
             logging.basicConfig(format=logger_format, handlers=[logging.StreamHandler(), time_file_handler])
 
-            #
-            # # 將格式添加給 TimedRotatingFileHandler
-            # time_file_handler.setFormatter(formatter)
-            #
-            # # 將 handler 添加給 logger
-            # logger.addHandler(time_file_handler)
         else:
             file_handler = logging.handlers.RotatingFileHandler(filename=file_path,
                                                                 maxBytes=1048576 * max_mb,
@@ -105,34 +99,14 @@ def getLogger(logger_name, logger_level=logging.DEBUG, instance=False, logger_fo
 
             logging.basicConfig(format=logger_format, handlers=[logging.StreamHandler(), file_handler])
 
-            #
-            # # 將格式添加給 FileHandler
-            # file_handler.setFormatter(formatter)
-            #
-            # # 將 handler 添加給 logger
-            # logger.addHandler(file_handler)
     else:
         logging.basicConfig(format=logger_format, handlers=[logging.StreamHandler()])
 
     # logger_name: 設置 logger 名稱
     logger = logging.getLogger(logger_name)
 
-    # 設置 logger 的格式
-    # formatter = logging.Formatter(logger_format)
-
     # 設置 logger 的 level
     logger.setLevel(logger_level)
-
-    # 避免重複輸出 log
-    # if not logger.handlers:
-    # # 創建一個輸出日誌到控制台的 StreamHandler
-    # console_handler = logging.StreamHandler()
-    #
-    # # 將格式添加給 StreamHandler
-    # console_handler.setFormatter(formatter)
-    #
-    # # 將 handler 添加給 logger
-    # logger.addHandler(console_handler)
 
     return logger
 
