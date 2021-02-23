@@ -36,7 +36,7 @@ def getFuncName():
 
 
 def getLogger(logger_name, logger_level=logging.DEBUG, instance=False, logger_format=None,
-              to_file=True, time_file=False, file_dir="", when='D', max_mb=2, back_count=20, interval=1):
+              to_file=True, time_file=False, file_dir: str = "", when='D', max_mb=2, back_count=20, interval=1):
     """
 
     :param logger_name: logger 名稱
