@@ -1,7 +1,7 @@
 import inspect
 import logging
 from logging import handlers
-from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
+from functools import total_ordering
 
 import cv2
 import os
@@ -109,6 +109,109 @@ def getLogger(logger_name, logger_level=logging.DEBUG, instance=False, logger_fo
     logger.setLevel(logger_level)
 
     return logger
+
+
+# 提供 sorted 自定義比較規則，參數可額外添加
+def cmpToKey(cmp, **kwargs):
+    """修改自 functools.cmp_to_key，參數可額外添加，而不只有要比較的 2 個元素"""
+
+    @total_ordering
+    class K(object):
+        __slots__ = ['obj']
+
+        def __init__(self, obj):
+            self.obj = obj
+
+        def __lt__(self, other):
+            return cmp(self.obj, other.obj, **kwargs) < 0
+
+        def __eq__(self, other):
+            return cmp(self.obj, other.obj, **kwargs) == 0
+
+        __hash__ = None
+
+    return K
+
+
+# 倚賴 cmpToKey 才能將此函式傳入 sorted 來自定義比較規則
+def keepOrderSorting(value1, value2, **kwargs):
+    """
+    example:
+    sorted(list(zip(indexs, values)), key=cmpToKey(keepOrderSorting, reverse=False)
+
+    :param value1:
+    :param value2:
+    :param kwargs:
+    :return:
+    """
+    (order1, val1) = value1
+    (order1, val2) = value2
+
+    # 沒有 reverse 參數則不反序
+    if not kwargs.__contains__("reverse"):
+        reverse = False
+
+    # 有 reverse 參數，則根據參數決定是否反序
+    else:
+        reverse = kwargs["reverse"]
+
+    # 大的排前面
+    if reverse:
+        if val1 > val2:
+            return -1
+        elif val1 < val2:
+            return 1
+        else:
+            return 0
+
+    # 小的排前面(一般情況)
+    else:
+        if val1 < val2:
+            return -1
+        elif val1 > val2:
+            return 1
+        else:
+            return 0
+
+
+def sortRank(values, reverse=False):
+    """
+    數值大小的排名，依照原始順序進行排列。
+
+    :param values:
+    :param reverse: 是否由大到小排序
+    :return:
+    """
+    if reverse:
+        indexs = list(range(1, len(values) + 1))
+        indexs = [index for index, value in sorted(list(zip(indexs, values)),
+                                                   key=cmpToKey(keepOrderSorting, reverse=True))]
+
+        ranks = list(range(1, len(indexs) + 1))
+        ranks = [rank for rank, index in sorted(list(zip(ranks, indexs)),
+                                                key=cmpToKey(keepOrderSorting, reverse=False))]
+    else:
+        # 索引值(indexs) 先隨著 數值(values) 進行排序
+        indexs = list(range(1, len(values) + 1))
+        indexs = [index for index, value in sorted(list(zip(indexs, values)),
+                                                   key=cmpToKey(keepOrderSorting, reverse=False))]
+
+        # 排名(ranks) 再隨著 依數值大小排序過的索引值(indexs) 進行排序
+        ranks = list(range(1, len(indexs) + 1))
+        ranks = [rank for rank, index in sorted(list(zip(ranks, indexs)),
+                                                key=cmpToKey(keepOrderSorting, reverse=False))]
+
+    return ranks
+
+
+
+
+
+def selectMultiColumns(df, column_indexs: list):
+    names = [name for i, name in enumerate(df.columns) if i in column_indexs]
+    select_columns = df[names]
+
+    return select_columns, names
 
 
 if __name__ == "__main__":
