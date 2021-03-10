@@ -204,9 +204,6 @@ def sortRank(values, reverse=False):
     return ranks
 
 
-
-
-
 def selectMultiColumns(df, column_indexs: list):
     names = [name for i, name in enumerate(df.columns) if i in column_indexs]
     select_columns = df[names]
