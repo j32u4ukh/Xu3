@@ -23,9 +23,10 @@ class Job(threading.Thread, metaclass=ABCMeta):
         self.__running.set()
 
     @abstractmethod
-    def run(self):
+    def run(self, *args, **kwargs):
         pass
 
+    # 若為 False，則持續等待，直到變成 True
     def checkPause(self):
         self.__flag.wait()
 
