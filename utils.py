@@ -1,10 +1,10 @@
 import inspect
 import logging
-from logging import handlers
+import os
 from functools import total_ordering
+from logging import handlers
 
 import cv2
-import os
 
 
 def showImage(*args):
@@ -47,14 +47,14 @@ def getLogger(logger_name, logger_level=logging.DEBUG, instance=False, logger_fo
     :param time_file: 是否使用根據時間建立新檔案的輸出格式
     :param file_dir: 輸出資料夾(從最上層開始的相對路徑)
     :param when: 時間間隔的單位
-    單位有以下幾種：
-    S 秒
-    M 分
-    H 小時、
-    D 天(天的計算似乎會受到開始時間點的影響，明明隔了一天，但計時還未超過 24 小時)、
-    W 星期（0=Monday） 'W0'-'W6'
-    MIDNIGHT 每天凌晨
-    # 參見: https://stackoverflow.com/a/60637138
+        單位有以下幾種：
+        S 秒
+        M 分
+        H 小時、
+        D 天(天的計算似乎會受到開始時間點的影響，明明隔了一天，但計時還未超過 24 小時)、
+        W 星期（0=Monday） 'W0'-'W6'
+        MIDNIGHT 每天凌晨
+        # 參見: https://stackoverflow.com/a/60637138
     :param max_mb: 超過此大小，將會產生同名檔案(不同後綴名稱)
     :param back_count: 備份檔案的個數，如果超過這個個數，就會自動刪除
     :param interval: 時間間隔
