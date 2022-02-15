@@ -45,6 +45,9 @@ class DataBase:
                                 file_dir=self.logger_dir,
                                 instance=True)
 
+    def __del__(self):
+        self.close(auto_commit=True)
+
     @staticmethod
     def sqlAnd(*sql_querys):
         return " AND ".join(sql_querys)
@@ -98,10 +101,32 @@ class DataBase:
         self.cursor.execute(f"""CREATE TABLE IF NOT EXISTS {table_name} ({table_definition});""")
         self.commit()
 
-    def add_(self, table_name=None, primary_column: str = "*", values: list = None):
+    def add(self, table_name=None, values: list = None, primary_column: str = ""):
+        if values is None or len(values) == 0:
+            return
+
+        if primary_column != "":
+            adding_values = self.additionFilter(primary_column=primary_column, values=values)
+        else:
+            adding_values = values
+
+        n_column = len(adding_values[0])
+        default_values = "?"
+
+        if n_column == 0:
+            return
+        else:
+            for _ in range(n_column - 1):
+                default_values += ", ?"
+
         if table_name is None:
             table_name = self.table_name
 
+        sql = f"INSERT OR IGNORE INTO {table_name} VALUES ({default_values});"
+        # self.logger.info(f"sql: {sql} | {values}", extra=self.extra)
+        self.cursor.executemany(sql, adding_values)
+
+    def additionFilter(self, primary_column: str = "*", values: list = None):
         # 取得原有 primary_key，過濾已添加數據，避免重複存取
         if len(self.primary_key) == 0:
             result = self.select(columns=[primary_column])
@@ -132,27 +157,7 @@ class DataBase:
         else:
             filtered_values = values
 
-        self.add(table_name=table_name, values=filtered_values)
-
-    def add(self, table_name=None, values: list = None):
-        if values is None or len(values) == 0:
-            return
-
-        n_column = len(values[0])
-        default_values = "?"
-
-        if n_column == 0:
-            return
-        else:
-            for _ in range(n_column - 1):
-                default_values += ", ?"
-
-        if table_name is None:
-            table_name = self.table_name
-
-        sql = f"INSERT OR IGNORE INTO {table_name} VALUES ({default_values});"
-        # self.logger.info(f"sql: {sql} | {values}", extra=self.extra)
-        self.cursor.executemany(sql, values)
+        return filtered_values
 
     # endregion
 
@@ -176,7 +181,7 @@ class DataBase:
         將 table_name 結果按 column_name [ 升序 | 降序 ] 排序
         SELECT *
         FROM table_name
-        TODO: WHERE [ conditions1 AND conditions2 ]
+        WHERE [ conditions1 AND conditions2 ]
         ORDER BY column_name [ASC | DESC];
 
         :param table_name: 表格名稱
@@ -432,8 +437,8 @@ if __name__ == "__main__":
             for res in result:
                 print(res)
 
-        def add(self, table_name=None, values=None):
-            super().add(values=values)
+        def add(self, table_name=None, values=None, primary_column=""):
+            super().add(values=values, primary_column=primary_column)
 
         def display(self, table_name=None, columns=None,
                     sort_by=None, sort_type: DataBase.SortType = DataBase.SortType.A2Z,
