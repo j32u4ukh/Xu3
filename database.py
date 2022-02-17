@@ -45,9 +45,6 @@ class DataBase:
                                 file_dir=self.logger_dir,
                                 instance=True)
 
-    def __del__(self):
-        self.close(auto_commit=True)
-
     @staticmethod
     def sqlAnd(*sql_querys):
         return " AND ".join(sql_querys)
